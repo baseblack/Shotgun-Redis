@@ -115,7 +115,7 @@ class Shotgun( _Shotgun, _Redis ):
 			result = super( Shotgun, self ).find( *args, **kwargs )
 			self.set( query_key , pickle.dumps(result, 2) )
 			
-			self.expire( query_key , 6000 ) 			# 10 minute expiration
+			self.expire( query_key , 600 ) 			# 10 minute expiration
 			return result
 		
 	def cache_only_find( self, *args, **kwargs ):
@@ -131,13 +131,13 @@ class Shotgun( _Shotgun, _Redis ):
 			return []
 
 
-	def find_one( self, **kwargs ):
+	def find_one( self, *args, **kwargs ):
 		# Find which attempts to read from local network cache before
 		# falling back onto the shotgun server if no data can be found.
 		# Any responses from shotgun are stored into the network cache
 		# to reduce latency on subsequent calls.
 		
-		return super( Shotgun, self ).find_one( **kwargs )
+		return super( Shotgun, self ).find_one( *args, **kwargs )
 		
 	def schema_read( self ):
 		return super( Shotgun, self ).schema_read()
