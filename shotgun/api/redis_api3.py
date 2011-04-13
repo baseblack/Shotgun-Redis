@@ -1,9 +1,9 @@
 #import redis
-from redis import Redis
+from redis import Redis, ConnectionError
 
 __version__ = "3.0.6" #to match shotgun api.
 
-__all__ = [ 'Redis' ]
+__all__ = [ 'Redis', 'ConnectionError' ]
 
 """
 Python Shotgun API library.

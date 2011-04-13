@@ -1,5 +1,6 @@
 from shotgun.api.shotgun_api3 import Shotgun  as _Shotgun
 from shotgun.api.redis_api3 import Redis  as _Redis
+from shotgun.api.redis_api3 import ConnectionError
 import shotgun.api.keys
 
 import pickle
@@ -19,7 +20,7 @@ class Shotgun( _Shotgun, _Redis ):
 	#need to retrieve the url and api key. 
 	
 	# v1.0 
-	def __init__( self, url='', scriptname='', key='', connection='cache' ):
+	def __init__( self, url='', scriptname='', key='', connection='cached' ):
 		# Initialises an intermediate object which masquerades access to either of the
 		# parent class types. 
 		#
@@ -61,6 +62,7 @@ class Shotgun( _Shotgun, _Redis ):
 			# shotgun if no recent data is present.
 			
 			_Shotgun.__init__( self, self.sg_url, self.sg_script, self.sg_key )
+			
 			_Redis.__init__( self, 'localhost', db=1 )
 			print "Info: Cached connection to Shotgun initiated"
 			
@@ -104,32 +106,41 @@ class Shotgun( _Shotgun, _Redis ):
 
 	def cached_find( self, *args, **kwargs ):
 		"""Checks in cache for the query data and makes a request to shotgun if not present"""
-		
-		query = list( args )						# start off by copying the args list 
-		query.append( kwargs )					# and then add on any keyword args
-		query_key = hash( pickle.dumps( query ) ) 	# a simple hash for indexing
-		
-		if self.exists( query_key ):
-			return pickle.loads( self.get( query_key ) )
-		else:
-			result = super( Shotgun, self ).find( *args, **kwargs )
-			self.set( query_key , pickle.dumps(result, 2) )
+
+		try:
+			query = list( args )						# start off by copying the args list 
+			query.append( kwargs )					# and then add on any keyword args
+			query_key = hash( pickle.dumps( query ) ) 	# a simple hash for indexing
 			
-			self.expire( query_key , 600 ) 			# 10 minute expiration
-			return result
+			if self.exists( query_key ):
+				return pickle.loads( self.get( query_key ) )
+			else:
+				result = super( Shotgun, self ).find( *args, **kwargs )
+				self.set( query_key , pickle.dumps(result, 2) )
+				
+				self.expire( query_key , 600 ) 			# 10 minute expiration
+				return result
+		
+		except ConnectionError:
+			print "Warning: Cannot connect to local cache, attempting direct connection"
+			self.connect_type = 'direct'
+			return self.find( *args, **kwargs )
 		
 	def cache_only_find( self, *args, **kwargs ):
 		"""Checks in cache for the query data and makes a request to shotgun if not present"""
 		
-		query = list( args )						# start off by copying the args list 
-		query.append( kwargs )					# and then add on any keyword args
-		query_key = hash( pickle.dumps( query ) ) 	# a simple hash for indexing
-		
-		if self.exists( query_key ):
-			return pickle.loads( self.get( query_key ) )
-		else:
+		try:
+			query = list( args )						# start off by copying the args list 
+			query.append( kwargs )					# and then add on any keyword args
+			query_key = hash( pickle.dumps( query ) ) 	# a simple hash for indexing
+			
+			if self.exists( query_key ):
+				return pickle.loads( self.get( query_key ) )
+			else:
+				return []
+		except ConnectionError:
+			print "Warning: Cannot connect to local cache"
 			return []
-
 
 	def find_one( self, *args, **kwargs ):
 		# Find which attempts to read from local network cache before
