@@ -2,14 +2,53 @@ import shotgun.api.shotgunAPI as shotgunAPI
 
 sgInstance = None
 
-def newShotgunConnection( scriptkey=None, conn='cached' ):
+def newShotgunConnection( scriptname, scriptkey, conn='cached' ):
 	global sgInstance
 	
 	if not sgInstance:
 		sgInstance = shotgunAPI.Shotgun( scriptkey, conn )
 
 	return sgInstance
+
+#
+# revised functions available:
+#
+
+#~ def getActiveUsers( sg ):
+#~ def getUserID( sg, username ):
+#~ def getVersionsInPlaylist( sg, playlist_code ):
+#~ def getRecentPlaylists( sg, sg_type, period, _at ):
+#~ def getRecentUpdatedPlaylists( sg, sg_type, period ):
+#~ def getRecentCreatedPlaylists( sg, sg_type, period ):
+#~ def getVersion( sg, version_code ):
+#~ def getMatchingVersions( sg, code, project_id ):
+#~ def getSequences( sg, project_id ):
+#~ def getShotStatus( sg, shot_id, projectid ):
+#~ def getShot( sg, shot_id, status='' ):
+#~ def getShotID( sg, shot_code ):
+#~ def getShotsInProject( sg, project_id ):
+#~ def getAllProjects( sg ):
+#~ def getActiveProjects( sg ):
+#~ def getProjectID( sg, projectname ):
+
+
+##########################################################
+#
+# HumanUser Entity type functions
+#
+##########################################################
+
+def getActiveUsers( sg ):
+	data =sg.find('HumanUser', [['sg_status_list','is','act']], ['name','login'])
+	users = []	
+	for user in data:
+		users.append(user['name'])
+
+	return users
 	
+def getUserID( sg, username ):
+	return sg.find_one('HumanUser', [['name','is',username]], ['id'])
+
 ##########################################################
 #
 # Playlist Entity type functions
@@ -56,6 +95,12 @@ def getVersion( sg, version_code ):
 
 	return sg.find_one( 'Version', filters, fields )	
 	
+def getMatchingVersions( sg, code, project_id ):
+	fields = ['id','code','sg_version_number','project']
+	filters = [[ 'project','is', {'type':'Project', 'id': project_id } ],['code','starts_with', code ]]
+
+	return  sg.find( 'Version', filters, fields )
+	
 ##########################################################
 #
 # Sequence Entity type functions
@@ -96,13 +141,29 @@ def getShot( sg, shot_id, status='' ):
 		
 	return result
 	
+def getShotID( sg, shot_code ):
+	return sg.find_one('Shot', [[ 'code','is', shot_code ]], ['id'])
+	
+def getShotsInProject( sg, project_id ):
+	fields = ['id','code','project']
+	filters = [[ 'project','is', {'type':'Project', 'id': project_id } ]]
+	order = { 'column' : 'code', 'direction' : 'asc' }
+	
+	data =  sg.find( 'Shot', filters, fields )
+	
+	shots = {}
+	for shot in data:
+		shots[ shot['code'] ] = shot
+
+	return shots
+	
 ##########################################################
 #
 # Project Entity type functions
 #
 ##########################################################	
 	
-def getProjects( sg ):
+def getAllProjects( sg ):
 	"""Returns a dict containing the unique id and disk alias for a given project name."""
 	
 	fields = ['id','name','sg_alias']
@@ -116,11 +177,25 @@ def getProjects( sg ):
 	
 	return project_dict	
 	
-def getProject( sg, name ):
+def getActiveProjects( sg ):
+	"""Returns a dict containing all of the projects which are currently marked as active."""
+	
+	fields = ['id','name','sg_alias']
+	filters = [['sg_status','is','active']]
+	
+	project_data = sg.find( "Project", filters, fields )	
+	
+	project_dict = {}
+	for project in project_data:
+		project_dict[ project['name'] ] = project
+	
+	return project_dict
+	
+def getProjectID( sg, projectname ):
 	"""Returns a the unique id and disk alias for a given project name."""
 	
 	fields = ['id','name','sg_alias']
-	filters = [['name','is',name]]
+	filters = [['name','is',projectname]]
 	
 	try:
 		project = sg.find( "Project", filters, fields )
