@@ -1,15 +1,8 @@
 from shotgun.api.shotgun_api3 import Shotgun  as _Shotgun
 from shotgun.api.redis_api3 import Redis  as _Redis
 from shotgun.api.redis_api3 import ConnectionError
-import shotgun.api.keys
 
 import pickle
-
-def getURL():
-	return shotgun.api.keys.url
-	
-def getKey( index ):
-	return shotgun.api.keys.keys[index]
 
 class Shotgun( _Shotgun, _Redis ):
 	"""
@@ -43,13 +36,13 @@ class Shotgun( _Shotgun, _Redis ):
 		self.sg_url = url
 		self.sg_key = key
 		self.sg_script = scriptname
+		self.ttl = 600 	# 10 minute expiration
 		
 		if scriptname:
 			self.connect_type = connection
 		else:
 			self.connect_type = 'local'
-		
-				
+							
 		if self.connect_type == 'direct':
 			# to be used only by applications which require accurate updates from the shotgun
 			# server. Should be sparingly used.
@@ -74,7 +67,7 @@ class Shotgun( _Shotgun, _Redis ):
 			_Redis.__init__( self, 'localhost', db=1 )			
 			print "Info: Local cache connection initiated"
 			
-	# v2.0 - Impliments controls over read functions from shotgun.
+	# v2.0 - Impliments controls over find function from shotgun.
 
 	##################################
 	# Find functions - external api is 'find'
@@ -89,24 +82,39 @@ class Shotgun( _Shotgun, _Redis ):
 		# to reduce latency on subsequent calls.
 
 		if self.connect_type == 'direct': 
-			return self.direct_find( *args, **kwargs )
+			return self._direct_find( *args, **kwargs )
 			
 		elif self.connect_type == 'local': 
-			return self.cache_only_find( *args, **kwargs )
+			return self._cache_only_find( *args, **kwargs )
 			
 		else: 
-			return self.cached_find( *args, **kwargs )
+			return self._cached_find( *args, **kwargs )
+			
+	#
+	# Private find methods. Used by find to impliment the various mechanisms for retrieval of
+	# data.
+	#
 
-	def direct_find( self, *args, **kwargs ):
+	def _direct_find( self, *args, **kwargs ):
 		"""Direct access to shotgun."""
 		
 		result = super( Shotgun, self ).find( *args, **kwargs )
 		
 		return result
 
-	def cached_find( self, *args, **kwargs ):
+	def _cached_find( self, *args, **kwargs ):
 		"""Checks in cache for the query data and makes a request to shotgun if not present"""
 
+		# Control of how long a given query should live in the cache for. 
+		# Some queries such as for current projects, users etc will be calling data
+		# which refreshes on long intervals. For these the time-to-live in cache can be set
+		# using the keyword argument 'ttl=#seconds'.
+		if ttl in kwargs:
+			ttl = kwargs['ttl']
+			del kwargs['ttl']
+		else:
+			ttl = self.ttl
+			
 		try:
 			query = list( args )						# start off by copying the args list 
 			query.append( kwargs )					# and then add on any keyword args
@@ -118,15 +126,17 @@ class Shotgun( _Shotgun, _Redis ):
 				result = super( Shotgun, self ).find( *args, **kwargs )
 				self.set( query_key , pickle.dumps(result, 2) )
 				
-				self.expire( query_key , 600 ) 			# 10 minute expiration
+				self.expire( query_key , ttl ) 			
 				return result
 		
+		# In the event that access to the cache fails then a reiteration of the find call is made
+		# using a direct-only connection to shotgun.
 		except ConnectionError:
 			print "Warning: Cannot connect to local cache, attempting direct connection"
 			self.connect_type = 'direct'
 			return self.find( *args, **kwargs )
 		
-	def cache_only_find( self, *args, **kwargs ):
+	def _cache_only_find( self, *args, **kwargs ):
 		"""Checks in cache for the query data and makes a request to shotgun if not present"""
 		
 		try:
@@ -142,23 +152,7 @@ class Shotgun( _Shotgun, _Redis ):
 			print "Warning: Cannot connect to local cache"
 			return []
 
-	def find_one( self, *args, **kwargs ):
-		# Find which attempts to read from local network cache before
-		# falling back onto the shotgun server if no data can be found.
-		# Any responses from shotgun are stored into the network cache
-		# to reduce latency on subsequent calls.
-		
-		return super( Shotgun, self ).find_one( *args, **kwargs )
-		
-	def schema_read( self ):
-		return super( Shotgun, self ).schema_read()
-		
-	def schema_field_read( self, field  ):
-		return super( Shotgun, self ).schema_field_read( field )
 	
-	def schema_entity_read( self ):
-		return super( Shotgun, self ).schema_entity_read( )
-
 
 
 

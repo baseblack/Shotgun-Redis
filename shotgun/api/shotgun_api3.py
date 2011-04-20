@@ -811,42 +811,42 @@ DSTDIFF = DSTOFFSET - STDOFFSET
 class SgTimezone(object):
     
     def __init__(self):
-        self.utc = self.UTC()
-        self.local = self.LocalTimezone()
+        self.utc = UTC()
+        self.local = LocalTimezone()
     
-    class UTC(tzinfo):
+class UTC(tzinfo):
         
-        def utcoffset(self, dt):
+    def utcoffset(self, dt):
+        return ZERO
+        
+    def tzname(self, dt):
+        return "UTC"
+        
+    def dst(self, dt):
+        return ZERO
+    
+class LocalTimezone(tzinfo):
+        
+    def utcoffset(self, dt):
+        if self._isdst(dt):
+            return DSTOFFSET
+        else:
+            return STDOFFSET
+        
+    def dst(self, dt):
+        if self._isdst(dt):
+            return DSTDIFF
+        else:
             return ZERO
         
-        def tzname(self, dt):
-            return "UTC"
+    def tzname(self, dt):
+        return _time.tzname[self._isdst(dt)]
         
-        def dst(self, dt):
-            return ZERO
-    
-    class LocalTimezone(tzinfo):
-        
-        def utcoffset(self, dt):
-            if self._isdst(dt):
-                return DSTOFFSET
-            else:
-                return STDOFFSET
-        
-        def dst(self, dt):
-            if self._isdst(dt):
-                return DSTDIFF
-            else:
-                return ZERO
-        
-        def tzname(self, dt):
-            return _time.tzname[self._isdst(dt)]
-        
-        def _isdst(self, dt):
-            tt = (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.weekday(), 0, -1)
-            stamp = _time.mktime(tt)
-            tt = _time.localtime(stamp)
-            return tt.tm_isdst > 0
+    def _isdst(self, dt):
+        tt = (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.weekday(), 0, -1)
+        stamp = _time.mktime(tt)
+        tt = _time.localtime(stamp)
+        return tt.tm_isdst > 0
 
 sg_timezone = SgTimezone()
 

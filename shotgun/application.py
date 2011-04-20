@@ -2,11 +2,11 @@ import shotgun.api.shotgunAPI as shotgunAPI
 
 sgInstance = None
 
-def newShotgunConnection( scriptname, scriptkey, conn='cached' ):
+def newShotgunConnection( scriptname, scriptkey, connection='cached' ):
 	global sgInstance
 	
 	if not sgInstance:
-		sgInstance = shotgunAPI.Shotgun( scriptkey, conn )
+		sgInstance = shotgunAPI.Shotgun( 'https://baseblack.shotgunstudio.com', scriptname, scriptkey, connection )
 
 	return sgInstance
 
@@ -56,7 +56,7 @@ def getUserID( sg, username ):
 ##########################################################	
 	
 def getVersionsInPlaylist( sg, playlist_code ):
-	fields = ( [ 'id','entity','code','user','description','project','sg_path_to_frames','sg_version_number' ] )
+	fields = [ 'id','entity','code','user','description','project','sg_path_to_frames','sg_version_number' ] 
 	filters = [[  'playlists', 'name_contains', playlist_code   ]]
 
 	versions = sg.find( 'Version', filters, fields )
@@ -90,10 +90,15 @@ def getRecentCreatedPlaylists( sg, sg_type, period ):
 ##########################################################
 	
 def getVersion( sg, version_code ):
-	fields = ( [ 'id','entity','code','user','description','project','sg_path_to_frames','sg_version_number' ] )
+	fields = [ 'id','entity','code','user','description','project','sg_path_to_frames','sg_version_number' ] 
 	filters = [[  'code', 'is', version_code   ]]
 
-	return sg.find_one( 'Version', filters, fields )	
+	result = sg.find( 'Version', filters, fields, limit=1 )	#we don't like the find_one function since is goes here anyway.
+	
+	if len(result) > 0:
+		return result[0]
+	else:
+		return None
 	
 def getMatchingVersions( sg, code, project_id ):
 	fields = ['id','code','sg_version_number','project']
