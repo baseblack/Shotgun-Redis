@@ -106,6 +106,17 @@ def getMatchingVersions( sg, code, project_id ):
 
 	return  sg.find( 'Version', filters, fields )
 	
+def initQuicktimeInfo( sg, version_id ):
+	fields = ['code', 'sg_version_number', 'entity.Shot.code', 'entity.Shot.sg_sequence', 'project.Project.sg_alias', 'sg_path_to_frames',  ]
+	filters = [['id', 'is', version_id]]
+
+	result = sg.find( 'Version', filters, fields, limit=1 )
+	
+	if len(result) > 0:
+		return result[0]
+	else:
+		return None
+		
 ##########################################################
 #
 # Sequence Entity type functions

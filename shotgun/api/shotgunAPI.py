@@ -109,7 +109,7 @@ class Shotgun( _Shotgun, _Redis ):
 		# Some queries such as for current projects, users etc will be calling data
 		# which refreshes on long intervals. For these the time-to-live in cache can be set
 		# using the keyword argument 'ttl=#seconds'.
-		if ttl in kwargs:
+		if 'ttl' in kwargs:
 			ttl = kwargs['ttl']
 			del kwargs['ttl']
 		else:
