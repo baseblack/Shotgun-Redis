@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 setup(name='shotgun',
 	version='3.0',
 	description='Shotgun python api, taken from github',
