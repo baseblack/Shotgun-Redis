@@ -42,3 +42,15 @@ local
 	For if you want to run offline, a check will be made with the cache for data, but if 
 	none is found it returns an empty list.
 
+
+Frequently Used Queries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are some queries which we find ourselves constantly re-writing or asking multiple times, such as get me a Version based on it its name or id. A module called shotgun.application has a whole bunch of these bundled together::
+
+	import shotgun.application as sgApp
+	sgApp.newShotgunConnection( 'script', 'secretkey' )
+	result = sgApp.getVersion( sg, '020_ab_123_comp_v001' )
+
+
+
