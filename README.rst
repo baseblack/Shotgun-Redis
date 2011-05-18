@@ -1,4 +1,4 @@
-A super simple local layer wrapping around the shotgun python api https://github.com/shotgunsoftware/python-api. 
+A super simple local cache layer wrapping around the shotgun python api https://github.com/shotgunsoftware/python-api. 
 
 When working with the Shotgun hosted solution we sometimes don't want to be make duplicate calls to the servers for data which we know is unlikely to have changed since the last call was made.
 
