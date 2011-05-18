@@ -6,7 +6,7 @@ setup(name='shotgun.api',
 	description='Shotgun python api, taken from github',
 	author='Andrew Bunday',
 	author_email='andrew.bunday@baseblack.com',
-	maintainer_email='requests@baseblack.com',
+	maintainer_email='developer@baseblack.com',
 	#py_modules=['shotgun.api.shotgun_api3'],
 	packages=['shotgun','shotgun.api']
 	)
